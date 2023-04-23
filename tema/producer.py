@@ -33,6 +33,7 @@ class Producer(Thread):
         @param kwargs: other arguments that are passed to the Thread's __init__()
         """
         Thread.__init__(self, kwargs=kwargs)
+        self.daemon = True
         self.products = products
         self.marketplace = marketplace
         self.republish_wait_time = republish_wait_time
