@@ -40,23 +40,23 @@ class Consumer(Thread):
 
     def run(self):
         it0 = 0
-        while (it0 < len(self.carts)):
-            id = self.id = self.marketplace.new_cart()
+        while it0 < len(self.carts):
+            cart_id = self.marketplace.new_cart()
             it1 = 0
-            while (it1 < len(self.carts[it0])):
+            while it1 < len(self.carts[it0]):
                 it2 = 0
-                while (it2 < self.carts[it0][it1]["quantity"]):
-                    if (self.carts[it0][it1]["type"] == "add"):
-                        result = self.marketplace.add_to_cart(id, self.carts[it0][it1]["product"])
-                        if (result):
+                while it2 < self.carts[it0][it1]["quantity"]:
+                    if self.carts[it0][it1]["type"] == "add":
+                        result = self.marketplace.add_to_cart(cart_id, self.carts[it0][it1]["product"])
+                        if result:
                             it2 += 1
                         else:
                             sleep(self.retry_wait_time)
-                    if (self.carts[it0][it1]["type"] == "remove"):
-                        self.marketplace.remove_from_cart(id, self.carts[it0][it1]["product"])
+                    if self.carts[it0][it1]["type"] == "remove":
+                        self.marketplace.remove_from_cart(cart_id, self.carts[it0][it1]["product"])
                         it2 += 1
                 it1 += 1
-            cart_cont = self.marketplace.place_order(id)
+            cart_cont = self.marketplace.place_order(cart_id)
             for i in range(len(cart_cont)):
                 print(self.name + " bought " + str(cart_cont[i]))
             it0 += 1

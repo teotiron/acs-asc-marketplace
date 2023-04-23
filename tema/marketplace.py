@@ -6,6 +6,9 @@ Assignment 1
 March 2021
 """
 from threading import Lock
+import logging
+import logging.handlers
+from time import gmtime
 
 class Marketplace:
     """
@@ -25,12 +28,14 @@ class Marketplace:
         self.lock = Lock()
         self.prod_lock = Lock()
         self.cart_lock = Lock()
-
-    def get_lock(self):
-        """
-        Returns the lock to be used by all
-        """
-        return self.lock
+        self.logger = logging.getLogger("marketplace")
+        self.logger.setLevel(logging.INFO)
+        file_hd = logging.handlers.RotatingFileHandler(filename="marketplace.log", maxBytes=512000, backupCount=5)
+        file_hd.setLevel(logging.INFO)
+        log_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        log_format.converter = gmtime
+        file_hd.setFormatter(log_format)
+        self.logger.addHandler(file_hd)
 
     def register_producer(self):
         """
@@ -38,9 +43,10 @@ class Marketplace:
         """
         self.prod_lock.acquire()
         self.producers.append([])
-        id = len(self.producers) - 1
+        prod_id = len(self.producers) - 1
+        self.logger.info("registered new producer with id %d", prod_id)
         self.prod_lock.release()
-        return id
+        return prod_id
 
     def publish(self, producer_id, product):
         """
@@ -55,10 +61,13 @@ class Marketplace:
         :returns True or False. If the caller receives False, it should wait and then try again.
         """
         self.lock.acquire()
-        if (len(self.producers[producer_id]) > self.queue_size_per_producer):
+        self.logger.info("publishing product %s from producer %d" % (str(product), producer_id))
+        if len(self.producers[producer_id]) > self.queue_size_per_producer:
+            self.logger.info("could not publish product: queue full")
             self.lock.release()
             return False
         self.producers[producer_id].append(product)
+        self.logger.info("product sucessfully produced")
         self.lock.release()
         return True
 
@@ -70,9 +79,10 @@ class Marketplace:
         """
         self.cart_lock.acquire()
         self.carts.append([])
-        id = len(self.carts) - 1
+        cart_id = len(self.carts) - 1
+        self.logger.info("registered new cart with id %d", cart_id)
         self.cart_lock.release()
-        return id
+        return cart_id
 
     def add_to_cart(self, cart_id, product):
         """
@@ -87,15 +97,18 @@ class Marketplace:
         :returns True or False. If the caller receives False, it should wait and then try again
         """
         self.lock.acquire()
+        self.logger.info("adding product %s to cart %d" % (str(product), cart_id))
         for i in range(len(self.producers)):
             try:
                 pos = self.producers[i].index(product)
                 self.carts[cart_id].append((product, i))
                 self.producers[i].pop(pos)
+                self.logger.info("product successfully added to cart")
                 self.lock.release()
                 return True
             except ValueError:
-                dummy = 1
+                pass
+        self.logger.info("could not add product: not available")
         self.lock.release()
         return False
 
@@ -110,12 +123,15 @@ class Marketplace:
         :param product: the product to remove from cart
         """
         self.lock.acquire()
+        self.logger.info("removing product %s from cart %d" % (str(product), cart_id))
         for i in range(len(self.carts[cart_id])):
-            if (self.carts[cart_id][i][0] == product):
+            if self.carts[cart_id][i][0] == product:
                 self.producers[self.carts[cart_id][i][1]].append(product)
                 self.carts[cart_id].pop(i)
+                self.logger.info("product successfully removed from cart")
                 self.lock.release()
                 return
+        self.logger.info("could not remove product: no such product exists")
         self.lock.release()
 
     def place_order(self, cart_id):
@@ -126,4 +142,5 @@ class Marketplace:
         :param cart_id: id cart
         """
         return_order = [elem[0] for elem in self.carts[cart_id]]
+        self.logger.info("created order for cart %d", cart_id)
         return return_order
