@@ -9,6 +9,7 @@ from threading import Lock
 import logging
 import logging.handlers
 from time import gmtime
+import unittest
 
 class Marketplace:
     """
@@ -144,3 +145,59 @@ class Marketplace:
         return_order = [elem[0] for elem in self.carts[cart_id]]
         self.logger.info("created order for cart %d", cart_id)
         return return_order
+
+class TestMarketplace(unittest.TestCase):
+    def setUp(self):
+        self.marketplace = Marketplace(1)
+
+    def test_unique_producers(self):
+        prod1 = self.marketplace.register_producer()
+        prod2 = self.marketplace.register_producer()
+        self.assertNotEqual(prod1, prod2)
+
+    def test_publish(self):
+        prod = self.marketplace.register_producer()
+        result = self.marketplace.publish(prod, "item")
+        self.assertTrue(result)
+
+    def test_publish_full(self):
+        prod = self.marketplace.register_producer()
+        result = self.marketplace.publish(prod, "item")
+        result = self.marketplace.publish(prod, "item2")
+        result = self.marketplace.publish(prod, "item3")
+        self.assertFalse(result)
+
+    def test_unique_carts(self):
+        cart1 = self.marketplace.new_cart()
+        cart2 = self.marketplace.new_cart()
+        self.assertNotEqual(cart1, cart2)
+
+    def test_add_existing(self):
+        prod = self.marketplace.register_producer()
+        cart = self.marketplace.new_cart()
+        result = self.marketplace.publish(prod, "item")
+        result = self.marketplace.add_to_cart(cart, "item")
+        self.assertTrue(result)
+
+    def test_add_nonexisting(self):
+        prod = self.marketplace.register_producer()
+        cart = self.marketplace.new_cart()
+        result = self.marketplace.add_to_cart(cart, "item")
+        self.assertFalse(result)
+
+    def test_place_order(self):
+        prod = self.marketplace.register_producer()
+        cart = self.marketplace.new_cart()
+        result = self.marketplace.publish(prod, "item")
+        result = self.marketplace.add_to_cart(cart, "item")
+        result = self.marketplace.place_order(cart)
+        self.assertIsNotNone(result)
+
+    def test_remove_from_cart(self):
+        prod = self.marketplace.register_producer()
+        cart = self.marketplace.new_cart()
+        result = self.marketplace.publish(prod, "item")
+        result = self.marketplace.add_to_cart(cart, "item")
+        self.marketplace.remove_from_cart(cart, "item")
+        result = self.marketplace.place_order(cart)
+        self.assertNotIn("item", result)
