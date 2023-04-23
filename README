@@ -1,0 +1,19 @@
+# ACS - ASC Assignment - Marketplace
+Teodor Tiron 334CA
+
+This assignment implements a marketplace using the Multi Producer Multi
+Consumer problem. The Producer objects create and publish products to a buffer
+list in the marketplace, while the Consumer objects try to add the products to
+a cart (which is another list managed the marketplace). When a consumer adds
+an item to their cart, they remove the item from the buffer. If the consumer
+removes the object from the cart, it will be added back to the buffer even if
+the buffer is full.
+
+# Synchronisation issues
+Most functions that use critical regions use a single lock object. The only
+exceptions are the register_producer() and get_cart() methods, which have their
+own locks due to the fact that they only ever add new buffers and never modify
+existing ones.
+
+# Git
+The git repo is available here: https://github.com/teotiron/acs-asc-marketplace
