@@ -6,7 +6,8 @@ Assignment 1
 March 2021
 """
 
-from threading import Thread
+from threading import Thread, Lock
+from time import sleep
 
 
 class Producer(Thread):
@@ -31,7 +32,22 @@ class Producer(Thread):
         @type kwargs:
         @param kwargs: other arguments that are passed to the Thread's __init__()
         """
-        pass
+        Thread.__init__(self, kwargs=kwargs)
+        self.products = products
+        self.marketplace = marketplace
+        self.republish_wait_time = republish_wait_time
+        self.id = self.marketplace.register_producer()
 
     def run(self):
-        pass
+        while True:
+            it1 = 0
+            while (it1 < len(self.products)):
+                it2 = 0
+                while (it2 < self.products[it1][1]):
+                    result = self.marketplace.publish(self.id, self.products[it1][0])
+                    if (result):
+                        it2 += 1
+                        sleep(self.products[it1][2])
+                    else:
+                        sleep(self.republish_wait_time)
+                it1 += 1

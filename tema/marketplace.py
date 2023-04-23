@@ -5,7 +5,7 @@ Computer Systems Architecture Course
 Assignment 1
 March 2021
 """
-
+from threading import Lock
 
 class Marketplace:
     """
@@ -19,13 +19,28 @@ class Marketplace:
         :type queue_size_per_producer: Int
         :param queue_size_per_producer: the maximum size of a queue associated with each producer
         """
-        pass
+        self.queue_size_per_producer = queue_size_per_producer
+        self.producers = []
+        self.carts = []
+        self.lock = Lock()
+        self.prod_lock = Lock()
+        self.cart_lock = Lock()
+
+    def get_lock(self):
+        """
+        Returns the lock to be used by all
+        """
+        return self.lock
 
     def register_producer(self):
         """
         Returns an id for the producer that calls this.
         """
-        pass
+        self.prod_lock.acquire()
+        self.producers.append([])
+        id = len(self.producers) - 1
+        self.prod_lock.release()
+        return id
 
     def publish(self, producer_id, product):
         """
@@ -39,7 +54,13 @@ class Marketplace:
 
         :returns True or False. If the caller receives False, it should wait and then try again.
         """
-        pass
+        self.lock.acquire()
+        if (len(self.producers[producer_id]) > self.queue_size_per_producer):
+            self.lock.release()
+            return False
+        self.producers[producer_id].append(product)
+        self.lock.release()
+        return True
 
     def new_cart(self):
         """
@@ -47,7 +68,11 @@ class Marketplace:
 
         :returns an int representing the cart_id
         """
-        pass
+        self.cart_lock.acquire()
+        self.carts.append([])
+        id = len(self.carts) - 1
+        self.cart_lock.release()
+        return id
 
     def add_to_cart(self, cart_id, product):
         """
@@ -61,7 +86,18 @@ class Marketplace:
 
         :returns True or False. If the caller receives False, it should wait and then try again
         """
-        pass
+        self.lock.acquire()
+        for i in range(len(self.producers)):
+            try:
+                pos = self.producers[i].index(product)
+                self.carts[cart_id].append((product, i))
+                self.producers[i].pop(pos)
+                self.lock.release()
+                return True
+            except ValueError:
+                dummy = 1
+        self.lock.release()
+        return False
 
     def remove_from_cart(self, cart_id, product):
         """
@@ -73,7 +109,14 @@ class Marketplace:
         :type product: Product
         :param product: the product to remove from cart
         """
-        pass
+        self.lock.acquire()
+        for i in range(len(self.carts[cart_id])):
+            if (self.carts[cart_id][i][0] == product):
+                self.producers[self.carts[cart_id][i][1]].append(product)
+                self.carts[cart_id].pop(i)
+                self.lock.release()
+                return
+        self.lock.release()
 
     def place_order(self, cart_id):
         """
@@ -82,4 +125,5 @@ class Marketplace:
         :type cart_id: Int
         :param cart_id: id cart
         """
-        pass
+        return_order = [elem[0] for elem in self.carts[cart_id]]
+        return return_order
